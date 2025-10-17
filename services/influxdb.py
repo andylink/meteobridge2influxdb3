@@ -6,7 +6,10 @@ from config import settings
 from models import WeatherReading
 from utils import setup_logger
 
+import os
 import pandas as pd # Use pandas for data structuring
+import requests
+from datetime import datetime
 
 logger = setup_logger('influxdb')
 
@@ -21,6 +24,53 @@ class InfluxDBService:
         self.token = settings.INFLUXDB_TOKEN
         self.database = settings.INFLUXDB_BUCKET # Use bucket as the database name
         self.measurement_name = "weather"
+        
+        # Webhook configuration (optional)
+        self.webhook_url = os.getenv('WEBHOOK_URL')  # e.g., http://localhost:5000/webhook
+        self.webhook_token = os.getenv('WEBHOOK_TOKEN')  # Token for X-WEBHOOK-TOKEN header
+    
+    def _send_to_webhook(self, reading: WeatherReading) -> bool:
+        """Send weather reading to webhook endpoint"""
+        if not self.webhook_url or not self.webhook_token:
+            logger.debug("Webhook not configured, skipping webhook POST")
+            return True
+        
+        try:
+            # Prepare payload matching the webhook API format
+            payload = {
+                "received_at": datetime.utcnow().isoformat() + "Z",
+                "payload": {
+                    "station": reading.station_tag,
+                    "timestamp": reading.timestamp.isoformat(),
+                    "readings": reading.readings
+                }
+            }
+            
+            headers = {
+                "Content-Type": "application/json",
+                "X-WEBHOOK-TOKEN": self.webhook_token
+            }
+            
+            response = requests.post(
+                self.webhook_url, 
+                json=payload, 
+                headers=headers, 
+                timeout=5
+            )
+            
+            if response.status_code == 200:
+                logger.info(f"Successfully sent data to webhook at {self.webhook_url}")
+                return True
+            else:
+                logger.warning(f"Webhook POST failed: {response.status_code} {response.text}")
+                return False
+                
+        except requests.exceptions.Timeout:
+            logger.error(f"Webhook request timed out: {self.webhook_url}")
+            return False
+        except Exception as e:
+            logger.error(f"Failed to send to webhook: {e}")
+            return False
         
     def write_reading(self, reading: WeatherReading) -> bool:
         """Write a weather reading to InfluxDB"""
@@ -84,6 +134,10 @@ class InfluxDBService:
                 )
                 
             logger.info(f"Successfully wrote data point to database/bucket '{self.database}'")
+            
+            # Send to webhook after successful InfluxDB write
+            self._send_to_webhook(reading)
+            
             return True
             
         except Exception as e:
