@@ -53,5 +53,5 @@ SENSOR_DEFINITIONS: List[SensorDefinition] = [
     SensorDefinition("wind0maxdir", "act", "max_wind_direction", "wind"),
     SensorDefinition("wind0chill", "act", "current_wind_chill", "wind"),
     SensorDefinition("rain0rate", "act", "current_rain_rate", "rain"),
-    SensorDefinition("rain0total", "act", "total_rain", "rain"),
+    SensorDefinition("rain0total", "sumday", "total_rain", "rain"),
 ]
