@@ -1,6 +1,4 @@
 from influxdb_client_3 import InfluxDBClient3
-# InfluxDB v3 client does not use Point, WritePrecision, or SYNCHRONOUS directly
-# from the v2 client, so we remove those imports.
 
 from config import settings
 from models import WeatherReading
@@ -18,12 +16,11 @@ class InfluxDBService:
     """Service for writing weather data to InfluxDB"""
     
     def __init__(self):
-        # The v3 client combines these into a single DSN (like URL) and uses
-        # database name instead of bucket/org for the write operation.
+       
         self.host = settings.INFLUXDB_URL
         self.token = settings.INFLUXDB_TOKEN
-        self.database = settings.INFLUXDB_BUCKET # Use bucket as the database name
-        self.measurement_name = "weather"
+        self.database = settings.INFLUXDB_DATABASE  # Updated to use INFLUXDB_DATABASE for database name
+        self.measurement_name = "wind_sensor_raw"
         
         # Webhook configuration (optional)
         self.webhook_url = os.getenv('WEBHOOK_URL')  # e.g., http://localhost:5000/webhook
@@ -121,7 +118,7 @@ class InfluxDBService:
             # NOTE: The v3 client connects to a database *on initialization*.
             # The `org` is often embedded in the host/token setup or less emphasized
             # when using InfluxDB Cloud/OSS with Flight SQL enabled.
-            # We use host, token, and database (which maps to the bucket).
+            # We use host, token, and database
 
             # Using a context manager for the client is good practice.
             with InfluxDBClient3(host=self.host, token=self.token, database=self.database) as client:
@@ -133,7 +130,7 @@ class InfluxDBService:
                     data_frame_tag_columns=['station']
                 )
                 
-            logger.info(f"Successfully wrote data point to database/bucket '{self.database}'")
+            logger.info(f"Successfully wrote data point to database '{self.database}'")
             
             # Send to webhook after successful InfluxDB write
             self._send_to_webhook(reading)

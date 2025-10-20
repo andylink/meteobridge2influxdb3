@@ -20,7 +20,7 @@ class Settings:
     INFLUXDB_URL: str = os.getenv('INFLUXDB_URL')
     INFLUXDB_TOKEN: str = os.getenv('INFLUXDB_TOKEN')
     INFLUXDB_ORG: str = os.getenv('INFLUXDB_ORG')
-    INFLUXDB_BUCKET: str = os.getenv('INFLUXDB_BUCKET')
+    INFLUXDB_DATABASE: str = os.getenv('INFLUXDB_DATABASE')
     
     # Application Configuration
     COLLECTION_INTERVAL: int = int(os.getenv('COLLECTION_INTERVAL', '10'))  # Kept for backward compatibility
