@@ -37,6 +37,31 @@ def get_sensor_types() -> List[str]:
     """Get all unique sensor types"""
     return list(set(sensor.sensor_type for sensor in SENSOR_DEFINITIONS))
 
+def get_raw_fields_schema() -> List[Dict[str, str]]:
+    """
+    Generates the InfluxDB field schema (name and type) from SENSOR_DEFINITIONS.
+    Infers type based on field name: 'cardinal' fields are varchar, all others are float64.
+    """
+    schema = []
+    
+    # Fields containing these substrings are treated as strings (varchar)
+    STRING_FIELD_SUBSTRINGS = ["cardinal"]
+    
+    for sensor in SENSOR_DEFINITIONS:
+        field_name = sensor.field_name
+        
+        # Default to float64 (numeric)
+        data_type = "float64"
+        
+        # Check if the field name should be a string
+        for substring in STRING_FIELD_SUBSTRINGS:
+            if substring in field_name:
+                data_type = "utf8"
+                break
+        
+        schema.append({"name": field_name, "type": data_type})
+        
+    return schema 
 
 # Sensor definitions
 SENSOR_DEFINITIONS: List[SensorDefinition] = [
