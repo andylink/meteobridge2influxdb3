@@ -23,7 +23,7 @@ class InfluxDBService:
         self.host = settings.INFLUXDB_URL
         self.token = settings.INFLUXDB_TOKEN
         self.database = settings.INFLUXDB_DATABASE
-        self.raw_measurement_name = "wind_sensor_raw"
+        self.raw_measurement_name = settings.INFLUXDB_RAW_TABLE
         
         # Webhook configuration (optional)
         self.webhook_url = os.getenv('WEBHOOK_URL')
@@ -75,35 +75,104 @@ class InfluxDBService:
             logger.error(f"Failed to send to webhook: {e}")
             return False
         
-    def clean_value(data):
-        """Validate and clean value before uploading to InfluxDB"""
-        cleaned = {}
+    def clean_all_readings(self, reading: WeatherReading):
+        """Validate and clean values before uploading to InfluxDB"""
+        cleaned_readings = {}
+        for field_name, value in reading.readings.items():
+            value_clean = str(value).strip().replace(',', '.')
+            try:
+                # Cardinal directions are always strings
+                if "cardinal" in field_name:
+                    cleaned_readings[field_name] = value_clean
+                    continue
 
-        if -50 < data.get('temperature', 0) < 60:
-            cleaned['temperature'] = data['temperature']
-        return cleaned
+                numeric_value = float(value_clean)
+
+                # Temperature fields (deg C)
+                if field_name in [
+                    "current_outside_temp", "current_dew_point", "current_wet_bulb"
+                ]:
+                    if -50 < numeric_value < 60:
+                        cleaned_readings[field_name] = numeric_value
+                elif field_name == "current_heat_index":
+                    if -50 < numeric_value < 70:
+                        cleaned_readings[field_name] = numeric_value
+                elif field_name == "current_wind_chill":
+                    if -80 < numeric_value < 60:
+                        cleaned_readings[field_name] = numeric_value
+
+                # Humidity (%)
+                elif field_name == "current_outside_humidity":
+                    if 0 <= numeric_value <= 100:
+                        cleaned_readings[field_name] = numeric_value
+
+                # Pressure (hPa)
+                elif field_name in ["current_pressure", "current_sea_level_pressure"]:
+                    if 800 <= numeric_value <= 1200:
+                        cleaned_readings[field_name] = numeric_value
+
+                # Wind speed (m/s)
+                elif field_name in ["current_wind_speed", "average10_wind_speed"]:
+                    if 0 <= numeric_value <= 150:
+                        cleaned_readings[field_name] = numeric_value
+                elif field_name == "gust_speed":
+                    if 0 <= numeric_value <= 200:
+                        cleaned_readings[field_name] = numeric_value
+
+                # Wind direction (degrees)
+                elif field_name in [
+                    "average10_wind_direction", "max_wind_direction", "current_wind_direction"
+                ]:
+                    if 0 <= numeric_value < 360:
+                        cleaned_readings[field_name] = numeric_value
+
+                # Rain rate (mm/h)
+                elif field_name == "current_rain_rate":
+                    if 0 <= numeric_value <= 200:
+                        cleaned_readings[field_name] = numeric_value
+
+                # Rain total (mm)
+                elif field_name == "total_rain":
+                    if 0 <= numeric_value <= 500:
+                        cleaned_readings[field_name] = numeric_value
+
+                # Default: accept any float value
+                else:
+                    cleaned_readings[field_name] = numeric_value
+
+            except ValueError:
+                cleaned_readings[field_name] = value_clean  # Keep as string if not numeric
+
+        reading.readings = cleaned_readings
+        return reading
 
     def write_reading(self, reading: WeatherReading) -> bool:
         """Write a weather reading to InfluxDB"""
         # ... (method body remains unchanged) ...
         try:
+             # Clean the reading first
+            cleaned_reading = self.clean_all_readings(reading)
+
             # --- 1. Prepare data for DataFrame creation ---
             data = {}
-            data['station'] = reading.station_tag 
+            data['station'] = cleaned_reading.station_tag
 
             field_data = {}
-            for field_name, value_str in reading.readings.items():
-                value_clean = value_str.strip().replace(',', '.')
-                
+            for field_name, value in cleaned_reading.readings.items():
+                if isinstance(value, str):
+                    value_clean = value.strip().replace(',', '.')
+                else:
+                    value_clean = value
+
                 if value_clean in ("", "-"):
                     logger.debug(f"Skipping empty value for {field_name}")
                     continue
-                
+
                 try:
                     numeric_value = float(value_clean)
                     field_data[field_name] = numeric_value
                     logger.debug(f"Added numeric field: {field_name}={numeric_value}")
-                except ValueError:
+                except (ValueError, TypeError):
                     field_data[field_name] = value_clean
                     logger.debug(f"Added string field: {field_name}='{value_clean}'")
 
@@ -111,8 +180,8 @@ class InfluxDBService:
             
             # --- 2. Create Pandas DataFrame ---
             data_list = [data]
-            timestamps = [reading.timestamp] 
-            
+            timestamps = [cleaned_reading.timestamp]
+
             df = pd.DataFrame(data_list)
             df.index = pd.to_datetime(timestamps, unit='ns') 
             
@@ -125,9 +194,9 @@ class InfluxDBService:
                 )
                 
             logger.info(f"Successfully wrote data point to database '{self.database}'")
-            
-            self._send_to_webhook(reading)
-            
+
+            self._send_to_webhook(cleaned_reading)
+
             return True
             
         except Exception as e:
