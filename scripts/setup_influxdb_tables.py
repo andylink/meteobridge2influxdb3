@@ -140,9 +140,9 @@ def main():
         
         # Define all tables, their retention, and their expected fields
         table_config_map: Dict[str, Dict[str, Any]] = {
-            "wind_sensor_raw": {'retention': '90d', 'fields': RAW_FIELDS}, 
-            "wind_sensor_1h": {'retention': '1y', 'fields': SENSOR_ROLLUP_FIELDS}, 
-            "wind_sensor_1d": {'retention': 'none', 'fields': SENSOR_ROLLUP_FIELDS}, 
+            settings.INFLUXDB_RAW_TABLE: {'retention': '90d', 'fields': RAW_FIELDS}, 
+            settings.INFLUXDB_HOURLY_TABLE: {'retention': '1y', 'fields': SENSOR_ROLLUP_FIELDS}, 
+            settings.INFLUXDB_DAILY_TABLE: {'retention': 'none', 'fields': SENSOR_ROLLUP_FIELDS}, 
         }
         
         success_count = 0

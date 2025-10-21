@@ -21,6 +21,9 @@ class Settings:
     INFLUXDB_TOKEN: str = os.getenv('INFLUXDB_TOKEN')
     INFLUXDB_ORG: str = os.getenv('INFLUXDB_ORG')
     INFLUXDB_DATABASE: str = os.getenv('INFLUXDB_DATABASE')
+    INFLUXDB_RAW_TABLE: str = os.getenv('INFLUXDB_RAW_TABLE')
+    INFLUXDB_HOURLY_TABLE: str = os.getenv('INFLUXDB_HOURLY_TABLE')
+    INFLUXDB_DAILY_TABLE: str = os.getenv('INFLUXDB_DAILY_TABLE')
     
     # Application Configuration
     COLLECTION_INTERVAL: int = int(os.getenv('COLLECTION_INTERVAL', '10'))  # Kept for backward compatibility

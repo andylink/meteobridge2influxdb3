@@ -74,6 +74,14 @@ class InfluxDBService:
         except Exception as e:
             logger.error(f"Failed to send to webhook: {e}")
             return False
+        
+    def clean_value(data):
+        """Validate and clean value before uploading to InfluxDB"""
+        cleaned = {}
+
+        if -50 < data.get('temperature', 0) < 60:
+            cleaned['temperature'] = data['temperature']
+        return cleaned
 
     def write_reading(self, reading: WeatherReading) -> bool:
         """Write a weather reading to InfluxDB"""
