@@ -82,7 +82,7 @@ class InfluxDBService:
             value_clean = str(value).strip().replace(',', '.')
             try:
                 # Cardinal directions are always strings
-                if "cardinal" in field_name:
+                if "cardinal" in field_name or "trend" in field_name:
                     cleaned_readings[field_name] = value_clean
                     continue
 
@@ -110,7 +110,6 @@ class InfluxDBService:
                 elif field_name in ["current_pressure", "current_sea_level_pressure"]:
                     if 800 <= numeric_value <= 1200:
                         cleaned_readings[field_name] = numeric_value
-
                 # Wind speed (m/s)
                 elif field_name in ["current_wind_speed", "average10_wind_speed"]:
                     if 0 <= numeric_value <= 150:
