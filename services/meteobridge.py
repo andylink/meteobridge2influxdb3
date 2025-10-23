@@ -71,7 +71,7 @@ class MeteobridgeClient:
                 sensor.field_name: line.strip()
                 for sensor, line in zip(self.sensors, lines[1:])
             }
-            
+            logger.info(f"Parsed readings: {readings}")
             weather_reading = WeatherReading(
                 timestamp=dt_utc,
                 readings=readings,

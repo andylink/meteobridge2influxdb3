@@ -71,6 +71,7 @@ SENSOR_DEFINITIONS: List[SensorDefinition] = [
     SensorDefinition("th0heatindex", "act", "current_heat_index", "temp_humidity"),
     SensorDefinition("th0wetbulb", "act", "current_wet_bulb", "temp_humidity"),
     SensorDefinition("thb0press", "act", "current_pressure", "pressure"),
+    SensorDefinition("thb0seapress", "act", "current_sea_level_pressure", "pressure"),
     SensorDefinition("thb0seapress", "delta3h=enbarotrend", "current_pressure_trend", "pressure"),
     SensorDefinition("wind0wind", "act", "current_wind_speed", "wind"),
     SensorDefinition("wind0wind", "avg10", "average10_wind_speed", "wind"),
