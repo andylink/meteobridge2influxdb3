@@ -177,9 +177,9 @@ class WeatherRollupService:
         if 'total_rain' in df.columns:
             rain = df['total_rain'].dropna()
             if not rain.empty:
-                # Total rainfall = difference between last and first cumulative readings
-                metrics['total_rainfall'] = float(rain.iloc[-1] - rain.iloc[0])
-        
+                # Total rainfall = last cumulative reading
+                metrics['total_rainfall'] = float(rain.iloc[-1])
+
         return metrics
     
     # -------------------------------------------------------------------------
